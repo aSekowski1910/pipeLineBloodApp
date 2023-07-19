@@ -1,32 +1,53 @@
+# Node.js with React
+# Build a Node.js project that uses React.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+ 
 trigger:
-  branches:
-    include:
-      - main
-
-pr:
-  branches:
-    include:
-      - '*'
-
+- frontend
+ 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: 'windows-latest'
+# Set variables
+variables:
+  directory: src
+  serviceConnection: IBTSandbox
+  appServiceName: RivalDrive
 
 steps:
-  - script: echo '##vso[task.setvariable variable=NODE_OPTIONS]--max-old-space-size=4096'
-    displayName: 'Increase Node.js memory limit'
-
-  - task: NodeTool@0
-    inputs:
-      versionSpec: '14.x'
-    displayName: 'Install Node.js'
-
-  - checkout: self
-
-  - script: npm install
-    displayName: 'Install dependencies'
-
-  - script: npm run lint
-    displayName: 'Run linting'
-
-  - script: npm run test
-    displayName: 'Run tests'
+- task: NodeTool@0
+  inputs:
+    versionSpec: '18.12.0'
+  displayName: 'Install Node.js'
+ 
+- script: 
+    npm install
+  displayName: 'npm install'
+  workingDirectory: $(directory)
+ 
+- script: 
+    npm run build
+  displayName: 'npm build'
+  workingDirectory: $(directory)
+ 
+- task: ArchiveFiles@2
+  displayName: 'Archive files'
+  inputs:
+    rootFolderOrFile: '$(Build.ArtifactStagingDirectory)'
+    includeRootFolder: false
+    archiveType: zip
+    archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+    replaceExistingArchive: true
+ 
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Build Artifacts'
+  inputs: 
+    pathtoPublish: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+ 
+#- task: AzureWebApp@1
+ # displayName: 'Deploy to App Service'
+  #inputs:
+   # azureSubscription: '$(serviceConnection)'
+    #appName: '$(appServiceName)'
+    #appType: 'webApp'
+    #package: '$(System.ArtifactsDirectory)/$(Build.BuildId).zip'
